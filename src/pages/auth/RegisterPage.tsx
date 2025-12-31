@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, User, Building } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Building, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -14,11 +17,43 @@ export function RegisterPage() {
     confirmPassword: '',
     acceptTerms: false
   });
+  const { signUp, signInWithGoogle, signInWithMicrosoft } = useAuth();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle registration logic here
-    console.log('Registration attempt:', formData);
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    const fullName = `${formData.firstName} ${formData.lastName}`;
+    const { error } = await signUp(formData.email, formData.password, fullName);
+
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError('');
+    await signInWithGoogle();
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    setError('');
+    await signInWithMicrosoft();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +89,17 @@ export function RegisterPage() {
             <h1 className="text-2xl font-bold text-white mb-2">Create Account</h1>
             <p className="text-gray-300">Join thousands of successful professionals</p>
           </div>
+
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center space-x-2"
+            >
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <p className="text-red-200 text-sm">{error}</p>
+            </motion.div>
+          )}
 
           {/* Registration Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -185,10 +231,10 @@ export function RegisterPage() {
 
             <button
               type="submit"
-              disabled={!formData.acceptTerms}
+              disabled={!formData.acceptTerms || loading}
               className="w-full bg-gradient-to-r from-teal-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-teal-700 hover:to-blue-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
@@ -201,10 +247,20 @@ export function RegisterPage() {
 
           {/* Social Registration */}
           <div className="space-y-3">
-            <button className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition-colors">
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition-colors disabled:opacity-50"
+            >
               Continue with Google
             </button>
-            <button className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition-colors">
+            <button
+              type="button"
+              onClick={handleMicrosoftSignIn}
+              disabled={loading}
+              className="w-full bg-white/10 border border-white/20 text-white py-3 rounded-lg font-medium hover:bg-white/20 transition-colors disabled:opacity-50"
+            >
               Continue with Microsoft
             </button>
           </div>

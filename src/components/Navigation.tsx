@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronDown, Code, Plane, Building, User } from 'lucide-react';
+import { Menu, X, ChevronDown, Code, Plane, Building, User, LogOut, LayoutDashboard, Plug } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -155,13 +164,64 @@ export function Navigation() {
 
           {/* CTA Buttons */}
           <div className="hidden lg:flex items-center space-x-4">
-            <Link
-              to="/login"
-              className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
-            >
-              <User className="w-4 h-4" />
-              <span>Login</span>
-            </Link>
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>{user.email?.split('@')[0]}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute top-full right-0 mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50"
+                    >
+                      <Link
+                        to="/dashboard"
+                        className="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-t-lg transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                      <Link
+                        to="/integrations"
+                        className="flex items-center space-x-2 px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50 transition-colors"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Plug className="w-4 h-4" />
+                        <span>Integrations</span>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          handleSignOut();
+                        }}
+                        className="flex items-center space-x-2 px-4 py-3 text-red-600 hover:bg-red-50 w-full text-left rounded-b-lg transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center space-x-2 px-4 py-2 text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                <span>Login</span>
+              </Link>
+            )}
             <Link
               to="/book-appointment"
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -215,7 +275,20 @@ export function Navigation() {
                 <Link to="/contact" className="block px-4 py-3 text-gray-700 hover:text-blue-600 hover:bg-gray-50">Contact</Link>
                 
                 <div className="px-4 py-4 border-t border-gray-100 space-y-3">
-                  <Link to="/login" className="block text-center py-2 text-gray-700 hover:text-blue-600">Login</Link>
+                  {user ? (
+                    <>
+                      <Link to="/dashboard" className="block text-center py-2 text-gray-700 hover:text-blue-600">Dashboard</Link>
+                      <Link to="/integrations" className="block text-center py-2 text-gray-700 hover:text-blue-600">Integrations</Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-center py-2 text-red-600 hover:text-red-700"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <Link to="/login" className="block text-center py-2 text-gray-700 hover:text-blue-600">Login</Link>
+                  )}
                   <Link to="/book-appointment" className="block text-center bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
                     Book Appointment
                   </Link>
